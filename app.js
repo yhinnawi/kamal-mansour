@@ -3,7 +3,7 @@
   'use strict';
   const { T, GROUPS, H } = window.TPL;
   const $app = document.getElementById('app');
-  const VERSION = '1.1.0';
+  const VERSION = '1.1.1';
 
   /* ---------- التخزين ---------- */
   const LS = {
@@ -24,6 +24,17 @@
     document.documentElement.classList.toggle('dark', !!p.dark);
   }
   applyPrefs();
+  /* وضع مضغوط عند ظهور لوحة المفاتيح */
+  let fullH = window.innerHeight;
+  function kbCheck() {
+    const h = window.visualViewport ? window.visualViewport.height : window.innerHeight;
+    if (h > fullH) fullH = h;
+    const t = document.activeElement && /^(INPUT|TEXTAREA)$/.test(document.activeElement.tagName) && document.activeElement.type !== 'file';
+    document.documentElement.classList.toggle('kb', !!t && h < fullH * 0.8);
+  }
+  (window.visualViewport || window).addEventListener('resize', kbCheck);
+  document.addEventListener('focusin', () => setTimeout(kbCheck, 300));
+  document.addEventListener('focusout', () => setTimeout(kbCheck, 300));
   document.addEventListener('touchstart', () => { }, { passive: true }); // يفعّل تأثير الضغط على كل الأجهزة
 
   /* ---------- أدوات ---------- */
@@ -205,9 +216,11 @@
       const val = getP(d, st.path);
       body += st.grp ? `<div class="grp">${esc(st.grp)}${st.parent && st.parent.type === 'group' && st.parent.hint ? ` <span style="font-weight:400;color:var(--muted);font-size:16px">– ${esc(st.parent.hint)}</span>` : ''}</div>` : '';
       body += `<p class="q">${esc(st.grp && st.parent && st.parent.type === 'list' ? st.parent.item + ' رقم ' + (st.path[1] + 1) : f.label)}${f.opt ? ' <span style="font-weight:400;font-size:17px;color:var(--muted)">(اختياري)</span>' : ''}</p>`;
-      if (f.hint) body += `<p class="hint">${esc(f.hint)}</p>`;
+      const hintAbove = f.type === 'choice' || f.type === 'date' || f.type === 'yesno';
+      if (f.hint && hintAbove) body += `<p class="hint">${esc(f.hint)}</p>`;
       body += inputHtml(f, val);
-      screen(tpl.name, body, `<button class="btn pri" id="next">${last ? 'معاينة الورقة' : 'التالي'}</button><div class="row"><button class="btn small" id="prev">السابق</button></div>`, headBtns());
+      if (f.hint && !hintAbove) body += `<p class="hint hint-under">${esc(f.hint)}</p>`;
+      screen(tpl.name, body, `<div class="navrow"><button class="btn pri" id="next">${last ? 'معاينة الورقة' : 'التالي'}</button><button class="btn small" id="prev">السابق</button></div>`, headBtns());
       wireInput(f, st);
     }
     on('#next', 'click', () => moveStep(1));
@@ -247,7 +260,12 @@
     if (f.type === 'date') { calendar(getP(d, st.path) || '', v => { set(v); persist(); }); return; }
     if (f.type === 'money') inp.addEventListener('input', () => { inp.value = inp.value.replace(/[^\d٠-٩]/g, '').replace(/[٠-٩]/g, c => '٠١٢٣٤٥٦٧٨٩'.indexOf(c)); document.getElementById('mshow').textContent = inp.value ? H.money(inp.value) : ''; });
     if (f.type !== 'long') inp.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); moveStep(1); } });
-    setTimeout(() => { try { inp.focus({ preventScroll: true }); if (inp.setSelectionRange && inp.type !== 'date' && inp.type !== 'number') { const n = inp.value.length; inp.setSelectionRange(n, n); } } catch (e) { } }, 60);
+    setTimeout(() => { try { inp.focus({ preventScroll: true }); keepVisible(inp); if (inp.setSelectionRange && inp.type !== 'date' && inp.type !== 'number') { const n = inp.value.length; inp.setSelectionRange(n, n); } } catch (e) { } }, 60);
+  }
+  function keepVisible(inp) {
+    const go = () => { try { inp.scrollIntoView({ block: 'center', behavior: 'smooth' }); } catch (e) { } };
+    inp.addEventListener('focus', () => setTimeout(go, 350));
+    inp.addEventListener('input', () => { if (inp.tagName === 'TEXTAREA') { const r = inp.getBoundingClientRect(), m = document.getElementById('main'); if (m && r.bottom > m.getBoundingClientRect().bottom) go(); } });
   }
   function renderChips(sel, onEl) { document.querySelectorAll(sel).forEach(c => c.classList.toggle('on', c === onEl)); }
 

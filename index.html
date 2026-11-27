@@ -78,6 +78,19 @@ header.bar button:active{background:rgba(255,255,255,.25)}
 .calday.today{border-color:var(--acc);color:var(--acc);font-weight:700}
 .calday.on{background:var(--pri);border-color:var(--pri);color:var(--pri-ink);font-weight:700}
 .calout{font-size:18px;margin-bottom:12px;padding:10px 12px;background:var(--card);border-radius:10px;border:1.5px solid var(--line)}
+.navrow{display:flex;gap:10px}.navrow #next{flex:2.2}.navrow #prev{flex:1}
+.hint-under{margin-top:10px}
+/* لوحة المفاتيح مفتوحة: أخفِ كل ما ليس ضرورياً */
+html.kb header.bar{min-height:0;padding:6px 12px}
+html.kb header.bar h1{font-size:16px}
+html.kb header.bar button{min-height:36px;font-size:15px;padding:2px 10px}
+html.kb .progress,html.kb .pbar,html.kb .hint-under,html.kb .grp span{display:none}
+html.kb main{padding:10px 14px}
+html.kb .grp{font-size:16px;margin:0}
+html.kb .q{font-size:20px;margin-bottom:6px}
+html.kb textarea.f{min-height:22vh}
+html.kb footer.nav{padding:6px 12px;gap:6px}
+html.kb footer.nav .btn{min-height:46px;font-size:18px}
 .toast{position:fixed;left:50%;bottom:120px;transform:translateX(-50%);background:#111;color:#fff;padding:14px 22px;border-radius:14px;font-size:19px;z-index:50;max-width:90vw;text-align:center}
 .note{background:var(--card);border:1.5px solid var(--line);border-radius:14px;padding:14px 16px;font-size:18px;margin-bottom:14px}
 .empty{color:var(--muted);text-align:center;padding:30px 10px}
