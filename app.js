@@ -3,7 +3,7 @@
   'use strict';
   const { T, GROUPS, H } = window.TPL;
   const $app = document.getElementById('app');
-  const VERSION = '1.5.1';
+  const VERSION = '1.5.2';
 
   /* ---------- التخزين ---------- */
   const LS = {
@@ -374,6 +374,7 @@
        <div class="row"><button class="btn small" id="share">مشاركة Word</button><button class="btn small" id="prn">طباعة</button><button class="btn small" id="edit">تعديل</button></div>`,
       { right: '<button id="hHome">الرئيسية</button>' });
     fit(); window.addEventListener('resize', fit);
+    readyDoc = null; makeDocx(dr).then(b => { readyDoc = { id: dr.id, b }; }).catch(() => { });   // تجهيز ملف Word مسبقاً حتى تفتح المشاركة فوراً
     on('[data-src]', 'click', e => {
       const src = e.currentTarget.dataset.src; steps = buildSteps(T[dr.tpl], dr.data);
       const s = steps.find(x => x.key === src || x.key.startsWith(src + '.')) || steps.find(x => x.path[0] === src);
@@ -420,8 +421,8 @@
     if (navigator.share) acts.push(['other', 'حفظ في مكان آخر (Drive / الملفات / واتساب)', '']);
     askName(dr, 'حفظ ملف Word', acts, async (act, name) => {
       try {
-        const b = await makeDocx(dr), fn = name + '.docx';
-        if (act === 'other') return shareFile(b, fn, dr.title);
+        const b = readyDoc && readyDoc.id === dr.id ? readyDoc.b : await makeDocx(dr), fn = name + '.docx';
+        if (act === 'other') return shareFile(b, fn, dr.title, true);
         if (window.showSaveFilePicker) {                       // على الكمبيوتر: نافذة «حفظ باسم» حقيقية
           try {
             const h = await window.showSaveFilePicker({ suggestedName: fn, types: [{ description: 'Word', accept: { 'application/vnd.openxmlformats-officedocument.wordprocessingml.document': ['.docx'] } }] });
@@ -446,12 +447,17 @@
       bg.remove(); if (btn && btn.dataset.act === 'share') shareFile(b, fn, title);
     });
   }
-  async function shareFile(b, fn, title) {
+  let readyDoc = null;
+  async function shareFile(b, fn, title, fallbackSheet) {
     const f = new File([b], fn, { type: b.type });
     try {
       if (navigator.canShare && navigator.canShare({ files: [f] })) await navigator.share({ files: [f], title });
       else { saveBlob(b, fn); toast('المشاركة غير متاحة على هذا الجهاز — تم الحفظ في التنزيلات', 4000); }
-    } catch (e) { if (e && e.name !== 'AbortError') err(e); }
+    } catch (e) {
+      if (e && e.name === 'AbortError') return;
+      if (e && e.name === 'NotAllowedError' && fallbackSheet) { saveBlob(b, fn, true); savedSheet(b, fn, title); return; }
+      err(e);
+    }
   }
   function printDoc(dr, asPdf, name) {
     const p = document.getElementById('print'); p.innerHTML = blocksToHtml(renderDoc(dr), dr);
@@ -459,8 +465,11 @@
     if (asPdf) toast('في شاشة الطباعة اختر الطابعة: «حفظ بتنسيق PDF» ثم اضغط زر التنزيل', 6000);
     setTimeout(() => { window.print(); setTimeout(() => { document.title = old; }, 1000); }, asPdf ? 1600 : 100);
   }
-  async function shareDoc(dr) {
-    try { const b = await makeDocx(dr); await shareFile(b, fileName(dr) + '.docx', dr.title); } catch (e) { err(e); }
+  function shareDoc(dr) {
+    const fn = fileName(dr) + '.docx';
+    if (readyDoc && readyDoc.id === dr.id) { shareFile(readyDoc.b, fn, dr.title, true); return; }   // فوري: يحافظ على إذن الضغطة
+    toast('جاري تجهيز الملف…', 1500);
+    makeDocx(dr).then(b => { readyDoc = { id: dr.id, b }; shareFile(b, fn, dr.title, true); }).catch(err);
   }
 
   /* ---------- Word (.docx) ---------- */
