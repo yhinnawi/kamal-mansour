@@ -3,14 +3,14 @@
   'use strict';
   const { T, GROUPS, H } = window.TPL;
   const $app = document.getElementById('app');
-  const VERSION = '1.2.1';
+  const VERSION = '1.5.0';
 
   /* ---------- التخزين ---------- */
   const LS = {
     get(k, d) { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; } catch (e) { return d; } },
     set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); return true; } catch (e) { toast('تعذر الحفظ على الهاتف'); return false; } }
   };
-  const OFFICE_DEF = { name: 'كمال إبراهيم منصور', title: 'المحامي بالنقض والإدارية العليا', addr: 'برقم 26 شارع الأقصر – سبورتنج – شقة 9 – قسم سيدي جابر – الإسكندرية', khataba: true };
+  const OFFICE_DEF = { name: 'كمال إبراهيم منصور', title: 'المحامي بالنقض والإدارية العليا', addr: 'برقم 26 شارع الأقصر – سبورتنج – شقة 9 – قسم سيدي جابر – الإسكندرية', phone: '01227594107', sub: '', khataba: true, lh: true, side: true, pfs: 'auto', pbold: 'auto', logo: 1 };
   const office = () => Object.assign({}, OFFICE_DEF, LS.get('lw.office', {}));
   const prefs = () => Object.assign({ fs: 20, dark: false }, LS.get('lw.prefs', {}));
   const drafts = () => LS.get('lw.drafts', {});
@@ -310,23 +310,50 @@
   }
 
   /* ---------- الورقة: HTML ---------- */
-  function blocksToHtml(bs) {
-    let h = '<div class="page">';
+  function sideInfo(dr) {
+    const t = T[dr.tpl], d = dr.data, g = t.fields.find(f => f.k === 'req');
+    const base = g && g.hint ? g.hint.replace(/^.*:\s*/, '') : 'الطالب', gg = H.g(d.req);
+    const role = gg === 'f' ? base + 'ة' : gg === 'pl' ? base + 'ين' : base;
+    let subj = t.subject ? t.subject(d) : t.name;
+    if (!t.subject && H.has(d.cno)) subj += ' في الدعوى رقم ' + d.cno + (H.has(d.cyr) ? ' لسنة ' + d.cyr : '');
+    return { subj, role, own: 'وتحت مسئوليت' + H.sfx(gg) };
+  }
+  const fsOf = (o, tp) => o.pfs === 'auto' || !o.pfs ? (tp.fs || 14) : +o.pfs;
+  const isBold = (o, tp) => o.pbold === 'auto' || o.pbold === undefined ? tp.bold !== false : (o.pbold === true || o.pbold === '1');
+  const lhAddr = a => String(a || '').replace(/^برقم\s*/, '');
+  function blocksToHtml(bs, dr) {
+    const o = office(), tp = dr ? T[dr.tpl] : {}, lhs = tp.lh || 'full', bold = isBold(o, tp);
+    let h = `<div class="page${tp.tu === false ? ' notu' : ''}${tp.loose ? ' loose' : ''}" style="font-size:${fsOf(o, tp)}pt;${bold ? 'font-weight:700' : ''}">`;
+    if (o.lh && lhs === 'small') h += `<div class="lhs"><div class="lhn">${esc(o.name)}</div><div>المحامي</div><div>${esc(o.title.replace(/^المحامي\s*/, ''))}</div></div>`;
+    else if (o.lh && lhs === 'center') h += `<div class="lhc"><div class="lhn">${esc(o.name)}</div><div>المحامي</div><div>${esc(o.title.replace(/^المحامي\s*/, ''))}</div><div>${esc(lhAddr(o.addr))}</div>${o.phone ? `<div>ت / ${esc(o.phone)}</div>` : ''}</div>`;
+    else if (o.lh && lhs === 'full') h += `<table class="lh"><tr><td class="lht"><div class="lhn">${esc(o.name)}</div><div>${esc(o.title)}</div>${o.sub ? `<div>${esc(o.sub)}</div>` : ''}<div>${esc(lhAddr(o.addr))}</div>${o.phone ? `<div>ت / ${esc(o.phone)}</div>` : ''}</td><td class="lhl"><img src="${+o.logo === 2 ? 'logo2.png' : 'logo.png'}" alt=""></td></tr></table>`;
+    let inner = '';
     bs.forEach(b => {
       const src = b.src ? ` data-src="${esc(b.src)}"` : '';
-      if (b.t === 'p') h += `<p class="${b.a || 'r'}${b.b ? ' b' : ''}"${src}>${esc(b.x)}</p>`;
-      else if (b.t === 'h') h += `<p class="h"${src}>${esc(b.x)}</p>`;
-      else if (b.t === 't') h += `<p class="t"${src}>${esc(b.x)}</p>`;
-      else if (b.t === 'li') h += `<p class="li"${src}><span class="b">${esc(b.n || '')}</span>${esc(b.x)}</p>`;
-      else if (b.t === 'sp') h += `<p>&nbsp;</p>`;
-      else if (b.t === 'pb') h += `<div style="page-break-before:always;height:18pt"></div>`;
-      else if (b.t === 'tbl') {
-        h += `<table${src}>` + b.rows.map(r => '<tr>' + r.map((c, i) => `<td class="${(b.c && b.c[i]) || 'r'}" style="width:${100 / r.length}%">${esc(c)}</td>`).join('') + '</tr>').join('') + '</table>';
-      }
+      if (b.t === 'p') inner += `<p class="${b.a || 'r'}${b.b ? ' b' : ''}"${src}>${esc(b.x)}</p>`;
+      else if (b.t === 'h') inner += `<p class="h"${src}>${esc(b.x)}</p>`;
+      else if (b.t === 't') inner += `<p class="t"${src}>${esc(b.x)}</p>`;
+      else if (b.t === 'li') inner += `<p class="li"${src}><span class="b">${esc(b.n || '')}</span>${esc(b.x)}</p>`;
+      else if (b.t === 'sp') inner += `<p>&nbsp;</p>`;
+      else if (b.t === 'box') inner += `<div class="box"></div>`;
+      else if (b.t === 'pb') inner += `<div style="page-break-before:always;height:18pt"></div>`;
+      else if (b.t === 'tbl') inner += `<table${src}>` + b.rows.map(r => '<tr>' + r.map((c, i) => `<td class="${(b.c && b.c[i]) || 'r'}" style="width:${100 / r.length}%">${esc(c)}</td>`).join('') + '</tr>').join('') + '</table>';
     });
+    if (bs.side && o.side && dr) {
+      const si = sideInfo(dr);
+      h += `<table class="sw"><tr><td class="sidec"><p class="c b">الموضوع</p><p class="c">${esc(si.subj)}</p><p>&nbsp;</p><p class="c">بناءً على طلب ${esc(si.role)} ${esc(si.own)}</p><p>&nbsp;</p><p class="c b">وكيل ${esc(si.role)}</p><p class="c b">المحامي</p></td><td class="mainc">${inner}</td></tr></table>`;
+    } else h += inner;
     return h + '</div>';
   }
-  function renderDoc(dr) { try { return T[dr.tpl].render(dr.data); } catch (e) { console.error(e); return [{ t: 'p', x: 'حدث خطأ أثناء تكوين الورقة: ' + e.message }]; } }
+  function withDefaults(tpl, d) {
+    const x = Object.assign({}, d);
+    tpl.fields.forEach(f => {
+      if (f.type === 'group' || x[f.k] !== undefined && !(Array.isArray(x[f.k]) && !x[f.k].length && f.def)) return;
+      if (f.def !== undefined) x[f.k] = typeof f.def === 'function' ? f.def() : clone(f.def);
+    });
+    return x;
+  }
+  function renderDoc(dr) { try { return T[dr.tpl].render(withDefaults(T[dr.tpl], dr.data)); } catch (e) { console.error(e); return [{ t: 'p', x: 'حدث خطأ أثناء تكوين الورقة: ' + e.message }]; } }
 
   /* ---------- المعاينة والتصدير ---------- */
   function fileName(dr) { const d = new Date(); return (dr.title || T[dr.tpl].name).replace(/[\\/:*?"<>|]/g, '').slice(0, 80) + ' - ' + d.getFullYear() + '-' + (d.getMonth() + 1) + '-' + d.getDate(); }
@@ -334,7 +361,7 @@
     go('preview', push);
     const dr = drafts()[id]; cur = cur && cur.draft.id === id ? cur : { draft: dr, key: dr.key }; cur.draft = dr;
     dr.done = true; saveDraft(dr);
-    const html = `<div class="note" style="font-size:17px">اضغط على أي فقرة في الورقة للرجوع إليها وتعديلها.</div><div class="pvwrap" id="pvw"><div class="pvscale" id="pvs">${blocksToHtml(renderDoc(dr))}</div></div>`;
+    const html = `<div class="note" style="font-size:17px">اضغط على أي فقرة في الورقة للرجوع إليها وتعديلها.</div><div class="pvwrap" id="pvw"><div class="pvscale" id="pvs">${blocksToHtml(renderDoc(dr), dr)}</div></div>`;
     screen('معاينة الورقة', html,
       `<div class="row"><button class="btn pri" id="pdf">حفظ PDF</button><button class="btn pri" id="word">حفظ Word</button></div>
        <div class="row"><button class="btn small" id="share">مشاركة Word</button><button class="btn small" id="prn">طباعة</button><button class="btn small" id="edit">تعديل</button></div>`,
@@ -420,7 +447,7 @@
     } catch (e) { if (e && e.name !== 'AbortError') err(e); }
   }
   function printDoc(dr, asPdf, name) {
-    const p = document.getElementById('print'); p.innerHTML = blocksToHtml(renderDoc(dr));
+    const p = document.getElementById('print'); p.innerHTML = blocksToHtml(renderDoc(dr), dr);
     const old = document.title; document.title = name || fileName(dr);
     if (asPdf) toast('في شاشة الطباعة اختر الطابعة: «حفظ بتنسيق PDF» ثم اضغط زر التنزيل', 6000);
     setTimeout(() => { window.print(); setTimeout(() => { document.title = old; }, 1000); }, asPdf ? 1600 : 100);
@@ -435,20 +462,22 @@
     return new Promise((ok, no) => { const sc = document.createElement('script'); sc.src = 'docx.js'; sc.onload = () => ok(window.docx); sc.onerror = () => no(new Error('تعذر تحميل مكتبة Word')); document.head.appendChild(sc); });
   }
   function makeDocx(dr) { return loadDocx().then(() => buildDocx(dr)); }
-  function buildDocx(dr) {
+  async function buildDocx(dr) {
     const X = window.docx;
     const { Document, Packer, Paragraph, TextRun, AlignmentType, Table, TableRow, TableCell, WidthType, BorderStyle, Footer, PageNumber, PageBreak } = X;
-    const FONT = 'Arial';
-    const run = (text, o = {}) => new TextRun({ text, bold: !!o.b, boldComplexScript: !!o.b, size: (o.s || 14) * 2, sizeComplexScript: (o.s || 14) * 2, font: { ascii: FONT, hAnsi: FONT, cs: FONT, eastAsia: FONT }, rightToLeft: true, underline: o.u ? {} : undefined });
+    const FONT = 'Arial', o = office(), TP = T[dr.tpl], FS = fsOf(o, TP), LHS = TP.lh || 'full', BOLD = isBold(o, TP);
+    const { ImageRun } = X;
+    const run = (text, p = {}) => { const b = p.b != null ? !!p.b : BOLD; return new TextRun({ text, bold: b, boldComplexScript: b, size: (p.s || FS) * 2, sizeComplexScript: (p.s || FS) * 2, font: { ascii: FONT, hAnsi: FONT, cs: FONT, eastAsia: FONT }, rightToLeft: true, underline: p.u ? {} : undefined }); };
     const AL = { c: AlignmentType.CENTER, j: AlignmentType.BOTH };
-    const para = (children, a, o = {}) => new Paragraph({ bidirectional: true, alignment: AL[a], spacing: { after: o.after == null ? 60 : o.after, before: o.before || 0, line: 340 }, children });
+    const LO = !!TP.loose, para = (children, al, p = {}) => new Paragraph({ bidirectional: true, alignment: AL[al], spacing: { after: p.after == null ? (LO ? 180 : 60) : p.after, before: p.before || 0, line: LO ? 400 : 320 }, children });
     const NB = { style: BorderStyle.NONE, size: 0, color: 'FFFFFF' };
     const borders = { top: NB, bottom: NB, left: NB, right: NB, insideHorizontal: NB, insideVertical: NB };
-    const kids = [];
-    renderDoc(dr).forEach(b => {
-      if (b.t === 'p') kids.push(para([run(b.x, { b: b.b })], b.a));
-      else if (b.t === 'h') kids.push(para([run(b.x, { b: 1, s: 16 })], 'c', { before: 120, after: 100 }));
-      else if (b.t === 't') kids.push(para([run(b.x, { b: 1, s: 18, u: 1 })], 'c', { after: 160 }));
+    const blocks = renderDoc(dr), kids = [];
+    blocks.forEach(b => {
+      if (b.t === 'p') kids.push(para([run(b.x, { b: b.b ? 1 : undefined })], b.a));
+      else if (b.t === 'h') kids.push(para([run(b.x, { b: 1, s: FS + 2 })], 'c', { before: 120, after: 100 }));
+      else if (b.t === 't') kids.push(para([run(b.x, { b: 1, s: FS + 4, u: TP.tu !== false })], 'c', { after: 160 }));
+      else if (b.t === 'box') { const L = { style: BorderStyle.SINGLE, size: 8, color: '000000' }; kids.push(new Table({ width: { size: 100, type: WidthType.PERCENTAGE }, borders: { top: L, bottom: L, left: L, right: L, insideHorizontal: NB, insideVertical: NB }, rows: [new TableRow({ children: [new TableCell({ children: [para([run('', { s: 6 })], undefined, { after: 0 })] })] })] }), para([run('')], undefined, { after: 0 })); }
       else if (b.t === 'li') kids.push(para([run(b.n || '', { b: 1 }), run(b.x)], 'j'));
       else if (b.t === 'sp') kids.push(para([run('')]));
       else if (b.t === 'pb') kids.push(new Paragraph({ children: [new PageBreak()] }));
@@ -462,13 +491,50 @@
         }));
       }
     });
+    let body = kids;
+    if (blocks.side && o.side) {
+      const si = sideInfo(dr), LINE = { style: BorderStyle.SINGLE, size: 18, color: '000000' };
+      const sp = (t, b) => para([run(t, { b: b ? 1 : undefined, s: FS - 2 })], 'c', { after: 40 });
+      body = [new Table({
+        visuallyRightToLeft: true, width: { size: 100, type: WidthType.PERCENTAGE }, borders,
+        rows: [new TableRow({ children: [
+          new TableCell({ width: { size: 20, type: WidthType.PERCENTAGE }, borders: { top: NB, bottom: NB, right: NB, left: LINE }, margins: { left: 120 },
+            children: [sp('الموضوع', 1), sp(si.subj), sp(''), sp('بناءً على طلب ' + si.role + ' ' + si.own), sp(''), sp('وكيل ' + si.role, 1), sp('المحامي', 1)] }),
+          new TableCell({ width: { size: 80, type: WidthType.PERCENTAGE }, borders: { top: NB, bottom: NB, left: NB, right: NB }, margins: { right: 160 }, children: kids.length ? kids : [para([run('')])] })
+        ] })]
+      })];
+    }
+    if (o.lh && (LHS === 'small' || LHS === 'center')) {
+      const al = LHS === 'center' ? 'c' : 'r';
+      const lp = (t, s, b) => para([run(t, { b, s })], al === 'c' ? 'c' : undefined, { after: 0 });
+      const rows = [lp(o.name, FS + 4, 1), lp('المحامي', FS - 3, 1), lp(o.title.replace(/^المحامي\s*/, ''), FS - 3, 1)];
+      if (LHS === 'center') { rows.push(lp(lhAddr(o.addr), FS - 3, 0)); if (o.phone) rows.push(lp('ت / ' + o.phone, FS - 3, 0)); }
+      if (LHS === 'small') body = [new Table({ visuallyRightToLeft: true, width: { size: 100, type: WidthType.PERCENTAGE }, borders, rows: [new TableRow({ children: [new TableCell({ borders, width: { size: 35, type: WidthType.PERCENTAGE }, children: rows }), new TableCell({ borders, width: { size: 65, type: WidthType.PERCENTAGE }, children: [para([run('')])] })] })] }), para([run('')], undefined, { after: 0 }), ...body];
+      else body = [...rows, para([run('')], undefined, { after: 120 }), ...body];
+    }
+    if (o.lh && LHS === 'full') {
+      let logo = null;
+      try { logo = await (await fetch(+o.logo === 2 ? 'logo2.png' : 'logo.png')).arrayBuffer(); } catch (e) { }
+      const lp = (t, s, b) => para([run(t, { b, s })], 'c', { after: 0 });
+      const txt = [lp(o.name, FS + 6, 1), lp(o.title, FS - 2, 1)];
+      if (o.sub) txt.push(lp(o.sub, FS - 2, 1));
+      txt.push(lp(lhAddr(o.addr), FS - 2, 1)); if (o.phone) txt.push(lp('ت / ' + o.phone, FS - 2, 1));
+      const BOT = { style: BorderStyle.SINGLE, size: 18, color: '000000' };
+      body = [new Table({
+        visuallyRightToLeft: true, width: { size: 100, type: WidthType.PERCENTAGE }, borders: { top: NB, left: NB, right: NB, insideHorizontal: NB, insideVertical: NB, bottom: BOT },
+        rows: [new TableRow({ children: [
+          new TableCell({ width: { size: 60, type: WidthType.PERCENTAGE }, borders: { top: NB, left: NB, right: NB, bottom: BOT }, children: txt }),
+          new TableCell({ width: { size: 40, type: WidthType.PERCENTAGE }, borders: { top: NB, left: NB, right: NB, bottom: BOT }, children: [new Paragraph({ alignment: AlignmentType.CENTER, children: logo ? [new ImageRun({ type: 'png', data: logo, transformation: { width: 70, height: 70 } })] : [] })] })
+        ] })]
+      }), para([run('')], 'r', { after: 0 }), ...body];
+    }
     const doc = new Document({
-      creator: office().name, title: dr.title,
-      styles: { default: { document: { run: { font: FONT, size: 28, sizeComplexScript: 28, rightToLeft: true } } } },
+      creator: o.name, title: dr.title,
+      styles: { default: { document: { run: { font: FONT, size: FS * 2, sizeComplexScript: FS * 2, rightToLeft: true } } } },
       sections: [{
-        properties: { page: { size: { width: 11906, height: 16838 }, margin: { top: 1134, bottom: 1134, right: 1418, left: 1134 } } },
+        properties: { page: { size: { width: 11906, height: 16838 }, margin: { top: 1000, bottom: 1000, right: 1134, left: 1000 } } },
         footers: { default: new Footer({ children: [new Paragraph({ alignment: AlignmentType.CENTER, children: [new TextRun({ children: [PageNumber.CURRENT], size: 22 })] })] }) },
-        children: kids
+        children: body
       }]
     });
     return Packer.toBlob(doc);
@@ -482,7 +548,15 @@
       <div class="sec">بيانات المكتب (تُكتب تلقائياً في كل ورقة)</div>
       <p class="q" style="font-size:20px">اسم المحامي</p><input class="f" id="s_name" value="${esc(o.name)}">
       <p class="q" style="font-size:20px;margin-top:14px">الصفة</p><input class="f" id="s_title" value="${esc(o.title)}">
-      <p class="q" style="font-size:20px;margin-top:14px">عنوان المكتب</p><textarea class="f" id="s_addr" style="min-height:110px">${esc(o.addr)}</textarea>
+      <p class="q" style="font-size:20px;margin-top:14px">عنوان المكتب</p><p class="hint">يُكتب في رأس الورقة وداخل الورقة (بمكتبه الكائن …)</p><textarea class="f" id="s_addr" style="min-height:110px">${esc(o.addr)}</textarea>
+      <p class="q" style="font-size:20px;margin-top:14px">رقم الهاتف (في رأس الورقة)</p><input class="f" id="s_phone" inputmode="tel" dir="ltr" style="text-align:right" value="${esc(o.phone || '')}">
+      <p class="q" style="font-size:20px;margin-top:14px">سطر إضافي تحت الاسم (اختياري)</p><input class="f" id="s_sub" value="${esc(o.sub || '')}" placeholder="مثال: للمحاماة والاستشارات الضريبية">
+      <div class="sec">شكل الورقة</div>
+      <div class="chips"><button class="chip ${o.lh ? 'on' : ''}" data-o="lh:1">إظهار رأس الورقة</button><button class="chip ${!o.lh ? 'on' : ''}" data-o="lh:0">بدون رأس</button></div>
+      <p class="hint">الشعار</p><div class="chips"><button class="chip ${+o.logo !== 2 ? 'on' : ''}" data-o="logo:1"><img src="logo.png" alt="الميزان" style="height:56px;vertical-align:middle"></button><button class="chip ${+o.logo === 2 ? 'on' : ''}" data-o="logo:2"><img src="logo2.png" alt="اليد والميزان" style="height:56px;vertical-align:middle"></button></div>
+      <div class="chips"><button class="chip ${o.side ? 'on' : ''}" data-o="side:1">العمود الجانبي (الموضوع)</button><button class="chip ${!o.side ? 'on' : ''}" data-o="side:0">بدون عمود</button></div>
+      <p class="hint">حجم خط الورقة</p><div class="chips"><button class="chip ${o.pfs === 'auto' || !o.pfs ? 'on' : ''}" data-o="pfs:auto">حسب النموذج</button>${[14, 16, 18].map(v => `<button class="chip ${+o.pfs === v ? 'on' : ''}" data-o="pfs:${v}">${v}</button>`).join('')}</div>
+      <p class="hint">سُمك الخط</p><div class="chips"><button class="chip ${o.pbold === 'auto' || o.pbold === undefined ? 'on' : ''}" data-o="pbold:auto">حسب النموذج</button><button class="chip ${o.pbold === true || o.pbold === '1' ? 'on' : ''}" data-o="pbold:1">عريض دائماً</button><button class="chip ${o.pbold === false || o.pbold === '0' ? 'on' : ''}" data-o="pbold:0">عادي دائماً</button></div>
       <div class="sec">العرض</div>
       <p class="q" style="font-size:20px">حجم الخط</p>
       <div class="chips">${[[18, 'عادي'], [20, 'كبير'], [23, 'كبير جداً']].map(([v, n]) => `<button class="chip ${p.fs === v ? 'on' : ''}" data-fs="${v}">${n}</button>`).join('')}</div>
@@ -495,12 +569,13 @@
       <p class="hint" style="margin-top:20px">الإصدار ${VERSION} – كل البيانات محفوظة على هذا الهاتف فقط.</p>`;
     screen('الإعدادات', html, `<button class="btn pri" id="save">حفظ</button><button class="btn small" id="back">رجوع</button>`);
     const gv = id => document.getElementById(id).value.trim();
-    const sv = () => { LS.set('lw.office', { name: gv('s_name'), title: gv('s_title'), addr: gv('s_addr'), khataba: office().khataba }); };
+    const sv = () => { LS.set('lw.office', Object.assign(LS.get('lw.office', {}), { name: gv('s_name'), title: gv('s_title'), addr: gv('s_addr'), phone: gv('s_phone'), sub: gv('s_sub') })); };
     on('#save', 'click', () => { sv(); toast('تم الحفظ'); home(); });
     on('#back', 'click', () => history.back());
     on('[data-fs]', 'click', e => { LS.set('lw.prefs', Object.assign(prefs(), { fs: +e.currentTarget.dataset.fs })); applyPrefs(); sv(); settings(); });
     on('[data-dk]', 'click', e => { LS.set('lw.prefs', Object.assign(prefs(), { dark: e.currentTarget.dataset.dk === '1' })); applyPrefs(); sv(); settings(); });
     on('[data-kh]', 'click', e => { sv(); LS.set('lw.office', Object.assign(LS.get('lw.office', {}), { khataba: e.currentTarget.dataset.kh === '1' })); settings(); });
+    on('[data-o]', 'click', e => { sv(); const [k, v] = e.currentTarget.dataset.o.split(':'); LS.set('lw.office', Object.assign(LS.get('lw.office', {}), { [k]: k === 'logo' ? +v : k === 'pfs' ? (v === 'auto' ? 'auto' : +v) : k === 'pbold' ? v : v === '1' })); settings(); });
     on('#bk', 'click', () => saveBlob(new Blob([JSON.stringify({ v: VERSION, office: LS.get('lw.office', {}), drafts: drafts() })], { type: 'application/json' }), 'نسخة احتياطية - نماذج المحامي.json'));
     on('#rs', 'click', () => document.getElementById('rsf').click());
     on('#rsf', 'change', e => {

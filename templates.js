@@ -155,12 +155,17 @@
       out.push({ t: 'p', a: 'j', x: 'بناءً على طلب ' + H.one(req[0] || { name: '' }) + ' – ومحل' + H.sfx(gr) + ' المختار مكتب الأستاذ / ' + off.name + ' – ' + off.title + ' – بمكتبه الكائن ' + off.addr + '.', src: 'req' });
     }
     out.push({ t: 'p', x: 'أنا ' + BL + ' محضر محكمة ' + BL + ' قد انتقلت إلى حيث إقامة:' });
-    (srv.length ? srv : [{ name: '' }]).forEach((p, i) => {
-      out.push({ t: 'li', n: (srv.length > 1 ? (i + 1) + '- ' : ''), x: H.one(p), src: 'srv' });
-      if (o.khataba !== false && off.khataba !== false) out.push({ t: 'p', x: 'مخاطباً مع: ' + BL });
-    });
+    const sl = srv.length ? srv : [{ name: '' }], bare = p => !H.has(p.addr) && !H.has(p.cap) && !H.has(p.nid);
+    for (let i = 0; i < sl.length; i++) {
+      const n = j => (sl.length > 1 ? (j + 1) + '- ' : '');
+      if (bare(sl[i]) && sl[i + 1] && bare(sl[i + 1])) {         // اسمان في سطر واحد كما في أوراق المكتب
+        out.push({ t: 'tbl', rows: [[n(i) + H.one(sl[i]), n(i + 1) + H.one(sl[i + 1])]], c: ['r', 'r'], src: 'srv' }); i++;
+      } else out.push({ t: 'li', n: n(i), x: H.one(sl[i]), src: 'srv' });
+    }
+    if (o.khataba !== false && off.khataba !== false) out.push({ t: 'p', x: 'مخاطباً مع: ' + BL });
     out.push({ t: 'p', b: 1, a: 'c', x: (o.verb || 'وأعلنت') + S + ' بالآتي' });
     o.facts.forEach(b => out.push(b));
+    out.side = true;
     if (o.end) { o.end.forEach(b => out.push(b)); return out; }
     out.push({ t: 'h', x: 'بنـاء عليــه' });
     let s = 'أنا المحضر سالف الذكر قد انتقلت إلى حيث إقامة المعلن إلي' + S + ' وأعلنت' + S + ' وسلمت' +
@@ -168,7 +173,7 @@
     if (H.has(d.scirc) || H.has(d.sctype)) s += ' الدائرة (' + H.v(d.scirc, 4) + ')' + (H.has(d.sctype) ? ' ' + d.sctype : '');
     s += (H.has(d.seat) ? ' والكائن مقرها ' + d.seat : '') + ' وذلك بجلستها المنعقدة علناً يوم ' +
       (H.wday(d.hdate) || BL) + ' الموافق ' + H.dateOr(d.hdate) + ' من الساعة التاسعة صباحاً وما بعدها ' +
-      H.pick(gs, 'ليسمع', 'لتسمع', 'ليسمعوا') + ' الحكم:';
+      (H.has(d.sumEnd) && !/^ليسمع/.test(d.sumEnd) ? d.sumEnd.trim() + (H.items(o.reqs || d.reqs).length ? ':' : '.') : H.pick(gs, 'ليسمع', 'لتسمع', 'ليسمعوا') + ' الحكم:');
     out.push({ t: 'p', a: 'j', x: s, src: 'scourt' });
     const reqs = H.items(o.reqs || d.reqs);
     if (reqs.length === 1) out.push({ t: 'p', a: 'j', x: reqs[0], src: 'reqs' });
@@ -189,7 +194,8 @@
   T.ilan_asl = {
     name: 'إعلان بأصل الصحيفة', desc: 'إعلان الخصم بالدعوى أو بقرار المحكمة',
     fields: [REQ(), SRV(), F.long('facts', 'موضوع الإعلان (الوقائع)', { hint: 'مثال: أقام الطالب الدعوى رقم … لسنة … أمام … وتحدد لنظرها جلسة … ولما كان يهم الطالب …' }),
-      ...SUMMON(), F.list('reqs', 'الطلبات (ليسمع الحكم بـ)', 'طلب'), ...FEES],
+      ...SUMMON(), F.choice('sumEnd', 'الغرض من الحضور', ['ليسمع الحكم', 'لتنفيذ حكم التحقيق', 'لسماع أقوال الشهود'], { free: true, def: 'ليسمع الحكم' }),
+      F.list('reqs', 'الطلبات', 'طلب', { min: 0 }), ...FEES],
     render: d => bailiff(d, { facts: H.paras(d.facts, 'facts') })
   };
 
@@ -455,7 +461,7 @@
       F.list('defs', 'أوجه الدفاع', 'وجه دفاع'), F.list('reqs', 'الطلبات (لذلك نلتمس)', 'طلب')],
     render(d) {
       const role = H.v(d.crole);
-      const out = [{ t: 't', x: 'مذكـرة دفـاع' },
+      const out = [{ t: 'box' }, { t: 't', x: 'مذكـرة دفـاع' },
         { t: 'p', a: 'c', b: 1, src: 'court', x: 'مقدمة إلى ' + H.v(d.court) + (H.has(d.circ) ? ' الدائرة (' + d.circ + ')' : '') + (H.has(d.ctype) ? ' ' + d.ctype : '') },
         { t: 'p', a: 'c', src: 'cno', x: 'في الدعوى رقم ' + H.v(d.cno, 6) + ' لسنة ' + H.v(d.cyr, 4) + (H.has(d.csfx) ? ' ' + d.csfx : '') + (H.has(d.hdate) ? ' والمحدد لنظرها جلسة ' + H.date(d.hdate) : '') },
         { t: 'tbl', rows: [['بدفاع / ' + H.v(d.client), '( ' + role + ' )']], c: ['r', 'c'], src: 'client' },
@@ -478,7 +484,7 @@
       F.long('subj', 'الموضوع (الوقائع)'), F.long('ask', 'الطلب (لذلك نلتمس)'), F.list('att', 'المرفقات', 'مرفق', { min: 0, def: ['صورة التوكيل'] })],
     render(d) {
       const off = H.office();
-      return [{ t: 'p', b: 1, src: 'to', x: H.v(d.to) }, { t: 'p', a: 'c', b: 1, x: 'بعد وافر الاحترام ،،،' },
+      return [{ t: 'h', src: 'to', x: H.v(d.to) }, { t: 'h', x: 'بعد وافر الاحترام' },
         { t: 'p', a: 'j', src: 'client', x: 'مقدمه لعدالتكم / ' + off.name + ' – المحامي – بصفته وكيلاً عن السيد / ' + H.v(d.client) + ' – ' + tawkilTxt(d) },
         { t: 'h', x: 'الموضــوع' }, ...H.paras(d.subj, 'subj'), { t: 'h', x: 'لذلــك' }, ...H.paras('نلتمس من عدالتكم ' + String(d.ask || BL).replace(/^\s*نلتمس من عدالتكم\s*/, ''), 'ask'),
         ...(H.items(d.att).length ? [{ t: 'p', b: 1, x: 'مرفق لعدالتكم:' }, ...H.items(d.att).map((x, i) => ({ t: 'li', n: (i + 1) + '- ', x, src: 'att' }))] : []),
@@ -521,11 +527,11 @@
     render(d) {
       const sel = (d.sel || []).filter(p => H.has(p.name)), buy = (d.buy || []).filter(p => H.has(p.name));
       const out = [{ t: 't', x: 'عقد بيع ابتدائي' },
-        { t: 'p', src: 'cdate', x: 'أنه في يوم ' + (H.wday(d.cdate) || BL) + ' الموافق ' + H.dateOr(d.cdate) + ' حُرر هذا العقد فيما بين كلٍّ من:' }];
+        { t: 'p', b: 1, src: 'cdate', x: 'بتاريخ ' + H.dateOr(d.cdate) + ' حُرر بين كلٍّ من:' }];
       sel.forEach((p, i) => out.push(contractParty(p, i, { k: 'sel' })));
-      out.push({ t: 'p', a: 'c', b: 1, x: '( طرف أول بائع )' });
+      out.push({ t: 'p', b: 1, x: '(طرف أول بائع ومتنازل)' });
       buy.forEach((p, i) => out.push(contractParty(p, sel.length + i, { k: 'buy' })));
-      out.push({ t: 'p', a: 'c', b: 1, x: '( طرف ثانٍ مشترٍ )' });
+      out.push({ t: 'p', b: 1, x: '(طرف ثانٍ مشترٍ ومتنازل إليه)' });
       out.push({ t: 'p', a: 'j', x: 'وبعد أن أقر الطرفان بأهليتهما للتعاقد والتصرف فقد اتفقا على ما يأتي:' });
       out.push({ t: 'h', x: '( البنـد التمهيـدي )' });
       out.push({ t: 'p', a: 'j', src: 'prop', x: 'يمتلك الطرف الأول البائع ما هو ' + H.v(d.prop) + (H.has(d.area) ? ' والبالغ مساحته ' + d.area : '') + (H.has(d.bN) || H.has(d.bS) || H.has(d.bE) || H.has(d.bW) ? ' وحدوده كالآتي:' : '.') });
@@ -580,6 +586,32 @@
     }
   };
 
+
+  /* ---------- شكل كل نموذج كما في ملفات المكتب ---------- */
+  const cref = (d, p = '') => H.has(d[p + 'cno']) ? ' في الدعوى رقم ' + d[p + 'cno'] + (H.has(d[p + 'cyr']) ? ' لسنة ' + d[p + 'cyr'] : '') + (H.has(d[p + 'ctype']) ? ' ' + d[p + 'ctype'] : '') : '';
+  const hdt = d => H.has(d.hdate) ? ' لجلسة ' + H.date(d.hdate) : '';
+  const SUBJ = {
+    ilan_asl: d => 'إعلان' + hdt(d),
+    reilan: d => 'إعادة إعلان' + cref(d) + hdt(d),
+    tanfiz: d => 'إعلان بالصيغة التنفيذية للحكم الصادر' + cref(d),
+    shawahed: d => 'إعلان بشواهد التزوير' + cref(d) + hdt(d),
+    sihha_new: d => 'صحة توقيع على ' + H.v(d.ctr) + (H.has(d.cdate) ? ' المؤرخ ' + H.date(d.cdate) : ''),
+    sihha_ta3jil: d => 'تعجيل من ' + (/شطب/.test(d.stop || '') ? 'الشطب' : 'الوقف') + cref(d),
+    inzar_rent: d => 'إنذار بعرض أجرة بمبلغ ' + H.v(H.num(d.amt), 4) + ' جنيه عن المدة من ' + H.dateOr(d.from) + ' وحتى ' + H.dateOr(d.to),
+    inzar_gen: d => 'إنذار',
+    istinaf: d => 'استئناف الحكم الصادر' + cref(d, 'j'),
+    ishkal: d => 'إشكال في تنفيذ الحكم الصادر' + cref(d, 'j'),
+    tadakhul: d => 'إعلان بالتدخل الهجومي' + cref(d) + (H.has(d.hdate) ? ' والمحدد لنظرها جلسة ' + H.date(d.hdate) : ''),
+    da3wa: d => 'صحيفة دعوى' + hdt(d)
+  };
+  const SIDE_F = F.text('sideSubj', 'موضوع الورقة (يظهر في العمود الجانبي)', { opt: true, hint: 'اتركه فارغاً ليُكتب تلقائياً حسب البيانات' });
+  Object.keys(SUBJ).forEach(id => { T[id].subject = d => H.has(d.sideSubj) ? d.sideSubj.trim() : SUBJ[id](d); T[id].fields.push(SIDE_F); });
+  ['naqd', 'idari', 'shakwa'].forEach(id => { T[id].lh = 'small'; T[id].bold = false; });
+  T.mozakra.lh = 'center'; T.mozakra.bold = false;
+  T.bay3.lh = 'none'; T.fasakh.lh = 'none'; T.fasakh.bold = false;
+  T.mozakra.fs = 18; T.shakwa.fs = 18; T.naqd.fs = 16; T.bay3.fs = 16;
+  ['naqd', 'idari', 'mozakra'].forEach(id => { T[id].tu = false; });
+  ['mozakra', 'shakwa', 'naqd'].forEach(id => { T[id].loose = true; });
   const PDATE = F.date('pdate', 'تاريخ الورقة', { opt: true, hint: 'اختر التاريخ، أو اضغط «مسح التاريخ» ليتركه فارغاً للمحضر' });
   Object.keys(T).forEach(id => { if (!['mozakra', 'shakwa', 'bay3', 'fasakh'].includes(id)) T[id].fields.unshift(PDATE); });
 
