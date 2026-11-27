@@ -3,7 +3,7 @@
   'use strict';
   const { T, GROUPS, H } = window.TPL;
   const $app = document.getElementById('app');
-  const VERSION = '1.1.1';
+  const VERSION = '1.2.1';
 
   /* ---------- التخزين ---------- */
   const LS = {
@@ -337,7 +337,7 @@
     const html = `<div class="note" style="font-size:17px">اضغط على أي فقرة في الورقة للرجوع إليها وتعديلها.</div><div class="pvwrap" id="pvw"><div class="pvscale" id="pvs">${blocksToHtml(renderDoc(dr))}</div></div>`;
     screen('معاينة الورقة', html,
       `<div class="row"><button class="btn pri" id="pdf">حفظ PDF</button><button class="btn pri" id="word">حفظ Word</button></div>
-       <div class="row"><button class="btn small" id="prn">طباعة</button><button class="btn small" id="share">مشاركة</button><button class="btn small" id="edit">تعديل</button></div>`,
+       <div class="row"><button class="btn small" id="share">مشاركة Word</button><button class="btn small" id="prn">طباعة</button><button class="btn small" id="edit">تعديل</button></div>`,
       { right: '<button id="hHome">الرئيسية</button>' });
     fit(); window.addEventListener('resize', fit);
     on('[data-src]', 'click', e => {
@@ -347,8 +347,8 @@
     });
     on('#edit', 'click', () => wizard(dr.id, dr.key));
     on('#hHome', 'click', () => home());
-    on('#word', 'click', () => makeDocx(dr).then(b => saveBlob(b, fileName(dr) + '.docx')).catch(err));
-    on('#pdf', 'click', () => printDoc(dr, true));
+    on('#word', 'click', () => saveWordDialog(dr));
+    on('#pdf', 'click', () => askName(dr, 'حفظ PDF', [['pdf', 'متابعة إلى حفظ PDF', 'pri']], (act, name) => printDoc(dr, true, name)));
     on('#prn', 'click', () => printDoc(dr, false));
     on('#share', 'click', () => shareDoc(dr));
   }
@@ -359,23 +359,74 @@
     s.style.marginRight = '0';
   }
   function err(e) { console.error(e); toast('حدث خطأ: ' + (e && e.message || e), 5000); }
-  function saveBlob(blob, name) {
+  function saveBlob(blob, name, quiet) {
     const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name; document.body.appendChild(a); a.click();
     setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 4000);
-    toast('تم الحفظ في التنزيلات (Downloads):\n' + name, 4000);
+    if (!quiet) toast('تم الحفظ ✔\nالاسم: ' + name + '\nالمكان: تطبيق «الملفات» ← التنزيلات (Downloads)', 7000);
   }
-  function printDoc(dr, asPdf) {
+  /* نافذة اسم الملف */
+  function askName(dr, title, actions, cb) {
+    document.querySelectorAll('.sheet-bg').forEach(e => e.remove());
+    const bg = document.createElement('div'); bg.className = 'sheet-bg';
+    bg.innerHTML = `<div class="sheet" role="dialog" aria-label="${esc(title)}"><p class="q" style="font-size:22px">${esc(title)}</p>
+      <p class="hint" style="margin-bottom:8px">اسم الملف (يمكنك تغييره):</p>
+      <textarea class="f" id="fname" style="min-height:90px;font-size:19px">${esc(fileName(dr))}</textarea>
+      <div style="display:flex;flex-direction:column;gap:10px;margin-top:14px">${actions.map(([k, t, c]) => `<button class="btn ${c || ''}" data-act="${k}">${esc(t)}</button>`).join('')}
+      <button class="btn small" data-act="cancel">إلغاء</button></div></div>`;
+    document.body.appendChild(bg);
+    bg.addEventListener('click', e => {
+      const b = e.target.closest('[data-act]'); if (!b && e.target !== bg) return;
+      const act = b ? b.dataset.act : 'cancel';
+      const name = (bg.querySelector('#fname').value || '').replace(/[\\/:*?"<>|\n]/g, ' ').trim() || fileName(dr);
+      bg.remove(); if (act !== 'cancel') cb(act, name);
+    });
+  }
+  function saveWordDialog(dr) {
+    const acts = [['dl', 'حفظ في التنزيلات (Downloads)', 'pri']];
+    if (navigator.share) acts.push(['other', 'حفظ في مكان آخر (Drive / الملفات / واتساب)', '']);
+    askName(dr, 'حفظ ملف Word', acts, async (act, name) => {
+      try {
+        const b = await makeDocx(dr), fn = name + '.docx';
+        if (act === 'other') return shareFile(b, fn, dr.title);
+        if (window.showSaveFilePicker) {                       // على الكمبيوتر: نافذة «حفظ باسم» حقيقية
+          try {
+            const h = await window.showSaveFilePicker({ suggestedName: fn, types: [{ description: 'Word', accept: { 'application/vnd.openxmlformats-officedocument.wordprocessingml.document': ['.docx'] } }] });
+            const w = await h.createWritable(); await w.write(b); await w.close(); toast('تم الحفظ: ' + h.name, 4000); return;
+          } catch (e) { if (e && e.name === 'AbortError') return; }
+        }
+        saveBlob(b, fn, true); savedSheet(b, fn, dr.title);
+      } catch (e) { err(e); }
+    });
+  }
+  function savedSheet(b, fn, title) {
+    document.querySelectorAll('.sheet-bg').forEach(e => e.remove());
+    const bg = document.createElement('div'); bg.className = 'sheet-bg';
+    bg.innerHTML = `<div class="sheet" role="dialog"><p class="q" style="font-size:23px;color:var(--ok)">✔ تم حفظ الملف</p>
+      <div class="note"><div><b>الاسم:</b> ${esc(fn)}</div><div><b>المكان:</b> تطبيق «الملفات» ← التنزيلات (Downloads)</div></div>
+      <div style="display:flex;flex-direction:column;gap:10px">
+      ${navigator.share ? '<button class="btn pri" data-act="share">مشاركة الملف الآن (واتساب / بريد / Drive)</button>' : ''}
+      <button class="btn small" data-act="close">تم</button></div></div>`;
+    document.body.appendChild(bg);
+    bg.addEventListener('click', e => {
+      const btn = e.target.closest('[data-act]'); if (!btn && e.target !== bg) return;
+      bg.remove(); if (btn && btn.dataset.act === 'share') shareFile(b, fn, title);
+    });
+  }
+  async function shareFile(b, fn, title) {
+    const f = new File([b], fn, { type: b.type });
+    try {
+      if (navigator.canShare && navigator.canShare({ files: [f] })) await navigator.share({ files: [f], title });
+      else { saveBlob(b, fn); toast('المشاركة غير متاحة على هذا الجهاز — تم الحفظ في التنزيلات', 4000); }
+    } catch (e) { if (e && e.name !== 'AbortError') err(e); }
+  }
+  function printDoc(dr, asPdf, name) {
     const p = document.getElementById('print'); p.innerHTML = blocksToHtml(renderDoc(dr));
-    const old = document.title; document.title = fileName(dr);
+    const old = document.title; document.title = name || fileName(dr);
     if (asPdf) toast('في شاشة الطباعة اختر الطابعة: «حفظ بتنسيق PDF» ثم اضغط زر التنزيل', 6000);
     setTimeout(() => { window.print(); setTimeout(() => { document.title = old; }, 1000); }, asPdf ? 1600 : 100);
   }
   async function shareDoc(dr) {
-    try {
-      const b = await makeDocx(dr), f = new File([b], fileName(dr) + '.docx', { type: b.type });
-      if (navigator.canShare && navigator.canShare({ files: [f] })) await navigator.share({ files: [f], title: dr.title });
-      else { saveBlob(b, f.name); toast('المشاركة غير متاحة — تم حفظ الملف في التنزيلات', 4000); }
-    } catch (e) { if (e && e.name !== 'AbortError') err(e); }
+    try { const b = await makeDocx(dr); await shareFile(b, fileName(dr) + '.docx', dr.title); } catch (e) { err(e); }
   }
 
   /* ---------- Word (.docx) ---------- */

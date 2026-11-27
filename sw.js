@@ -1,4 +1,4 @@
-const CACHE = 'lawyer-forms-v1.1.1';
+const CACHE = 'lawyer-forms-v1.2.1';
 const FILES = ['./', 'index.html', 'app.js', 'templates.js', 'docx.js', 'manifest.webmanifest', 'icon-192.png', 'icon-512.png',
   'fonts/noto-naskh-arabic-arabic-400-normal.woff2', 'fonts/noto-naskh-arabic-arabic-700-normal.woff2',
   'fonts/noto-naskh-arabic-latin-400-normal.woff2', 'fonts/noto-naskh-arabic-latin-700-normal.woff2'];
