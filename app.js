@@ -3,7 +3,7 @@
   'use strict';
   const { T, GROUPS, H } = window.TPL;
   const $app = document.getElementById('app');
-  const VERSION = '1.5.2';
+  const VERSION = '1.6.1';
 
   /* ---------- التخزين ---------- */
   const LS = {
@@ -603,6 +603,21 @@
   /* ---------- تشغيل ---------- */
   history.replaceState({ v: 'home' }, '');
   home(false);
-  if ('serviceWorker' in navigator && location.protocol !== 'file:') navigator.serviceWorker.register('sw.js').catch(() => { });
+  /* تحديث تلقائي: عند وجود نسخة جديدة يُعاد تحميل التطبيق مرة واحدة وتظهر رسالة */
+  if ('serviceWorker' in navigator && location.protocol !== 'file:') {
+    let firstInstall = !navigator.serviceWorker.controller, reloaded = false;
+    navigator.serviceWorker.addEventListener('controllerchange', () => {
+      if (firstInstall) { firstInstall = false; return; }     // أول تثبيت: لا داعي لإعادة التحميل
+      if (reloaded) return;
+      reloaded = true;
+      try { sessionStorage.setItem('lw.updated', '1'); } catch (e) { }
+      location.reload();
+    });
+    navigator.serviceWorker.register('sw.js', { updateViaCache: 'none' }).then(r => {
+      r.update().catch(() => { });
+      document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') r.update().catch(() => { }); });
+    }).catch(() => { });
+    try { if (sessionStorage.getItem('lw.updated')) { sessionStorage.removeItem('lw.updated'); setTimeout(() => toast('تم تحديث التطبيق إلى الإصدار ' + VERSION + ' ✔', 4000), 400); } } catch (e) { }
+  }
   window.__test = { drafts, preview, wizard, makeDocx, blocksToHtml, renderDoc, T };
 })();

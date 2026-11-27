@@ -1,4 +1,4 @@
-const CACHE = 'lawyer-forms-v1.5.2';
+const CACHE = 'lawyer-forms-v1.6.1';
 const FILES = ['./', 'index.html', 'app.js', 'templates.js', 'docx.js', 'manifest.webmanifest', 'icon-192.png', 'icon-512.png', 'logo.png', 'logo2.png',
   'fonts/noto-naskh-arabic-arabic-400-normal.woff2', 'fonts/noto-naskh-arabic-arabic-700-normal.woff2',
   'fonts/noto-naskh-arabic-latin-400-normal.woff2', 'fonts/noto-naskh-arabic-latin-700-normal.woff2'];
@@ -10,3 +10,4 @@ self.addEventListener('fetch', e => {
     const copy = res.clone(); caches.open(CACHE).then(c => c.put(e.request, copy)); return res;
   }).catch(() => caches.match('index.html'))));
 });
+// sw.js itself is always checked against the server (updateViaCache: 'none'); a new CACHE name = new version
