@@ -3,7 +3,7 @@
   'use strict';
   const { T, GROUPS, H } = window.TPL;
   const $app = document.getElementById('app');
-  const VERSION = '1.0.4';
+  const VERSION = '1.1.0';
 
   /* ---------- التخزين ---------- */
   const LS = {
@@ -220,7 +220,7 @@
   function inputHtml(f, v) {
     switch (f.type) {
       case 'long': return `<textarea class="f" id="inp" dir="rtl" ${f.small ? 'style="min-height:30vh"' : ''}>${esc(v || '')}</textarea>`;
-      case 'date': return `<input class="f" id="inp" type="date" value="${esc(v || '')}"><div class="row" style="margin-top:12px"><button class="btn small" id="clr">مسح التاريخ (يُكتب باليد)</button></div><p class="hint" id="dshow" style="margin-top:10px">${v ? esc(H.wday(v) + ' ' + H.date(v)) : ''}</p>`;
+      case 'date': return `<div id="cal"></div>`;
       case 'money': return `<input class="f" id="inp" inputmode="numeric" dir="ltr" style="text-align:right" value="${esc(v || '')}"><p class="hint" id="mshow" style="margin-top:12px">${v ? esc(H.money(v)) : ''}</p>`;
       case 'yesno': return `<div class="chips"><button class="chip ${v ? 'on' : ''}" data-yn="1">نعم</button><button class="chip ${!v ? 'on' : ''}" data-yn="0">لا</button></div>`;
       case 'choice': {
@@ -244,16 +244,52 @@
       return;
     }
     readInput = () => { if (inp) set(inp.value); };
-    if (f.type === 'date') {
-      inp.addEventListener('change', () => { document.getElementById('dshow').textContent = inp.value ? H.wday(inp.value) + ' ' + H.date(inp.value) : ''; });
-      on('#clr', 'click', () => { inp.value = ''; set(''); document.getElementById('dshow').textContent = 'سيترك فارغاً'; });
-      return;
-    }
+    if (f.type === 'date') { calendar(getP(d, st.path) || '', v => { set(v); persist(); }); return; }
     if (f.type === 'money') inp.addEventListener('input', () => { inp.value = inp.value.replace(/[^\d٠-٩]/g, '').replace(/[٠-٩]/g, c => '٠١٢٣٤٥٦٧٨٩'.indexOf(c)); document.getElementById('mshow').textContent = inp.value ? H.money(inp.value) : ''; });
     if (f.type !== 'long') inp.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); moveStep(1); } });
     setTimeout(() => { try { inp.focus({ preventScroll: true }); if (inp.setSelectionRange && inp.type !== 'date' && inp.type !== 'number') { const n = inp.value.length; inp.setSelectionRange(n, n); } } catch (e) { } }, 60);
   }
   function renderChips(sel, onEl) { document.querySelectorAll(sel).forEach(c => c.classList.toggle('on', c === onEl)); }
+
+
+  /* ---------- تقويم عربي ---------- */
+  const MONTHS = ['يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو', 'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'];
+  const WD = ['سبت', 'أحد', 'اثنين', 'ثلاثاء', 'أربعاء', 'خميس', 'جمعة'];
+  const iso = (y, m, d) => y + '-' + String(m + 1).padStart(2, '0') + '-' + String(d).padStart(2, '0');
+  function calendar(val, onPick) {
+    const box = document.getElementById('cal'), now = new Date();
+    let sel = val, vy, vm;
+    const m0 = /^(\d{4})-(\d{2})-(\d{2})$/.exec(val || '');
+    if (m0) { vy = +m0[1]; vm = +m0[2] - 1; } else { vy = now.getFullYear(); vm = now.getMonth(); }
+    const today = iso(now.getFullYear(), now.getMonth(), now.getDate());
+    function draw() {
+      const first = new Date(vy, vm, 1).getDay();           // 0=الأحد
+      const lead = (first + 1) % 7;                          // الأسبوع يبدأ السبت
+      const days = new Date(vy, vm + 1, 0).getDate();
+      let yrs = ''; for (let y = now.getFullYear() + 3; y >= 1950; y--) yrs += `<option value="${y}" ${y === vy ? 'selected' : ''}>${y}</option>`;
+      let h = `<div class="calsel"><button class="calnav" id="cprev" aria-label="الشهر السابق">›</button>
+        <select class="f calm" id="cm">${MONTHS.map((n, i) => `<option value="${i}" ${i === vm ? 'selected' : ''}>${n}</option>`).join('')}</select>
+        <select class="f caly" id="cy">${yrs}</select>
+        <button class="calnav" id="cnext" aria-label="الشهر التالي">‹</button></div><div class="calgrid">`;
+      WD.forEach(w => { h += `<div class="calwd">${w}</div>`; });
+      for (let i = 0; i < lead; i++) h += '<div></div>';
+      for (let dd = 1; dd <= days; dd++) {
+        const k = iso(vy, vm, dd);
+        h += `<button class="calday${k === sel ? ' on' : ''}${k === today ? ' today' : ''}" data-day="${k}">${dd}</button>`;
+      }
+      h += `</div><div class="calout" id="cout">${sel ? 'التاريخ المختار: <b>' + esc(H.wday(sel) + ' ' + H.date(sel)) + '</b>' : 'لم يتم اختيار تاريخ — سيُترك فارغاً للكتابة باليد'}</div>
+        <div class="row"><button class="btn small" id="ctoday">اليوم</button><button class="btn small" id="cclr">مسح التاريخ</button></div>`;
+      box.innerHTML = h;
+      box.querySelectorAll('[data-day]').forEach(b => b.addEventListener('click', () => { sel = b.dataset.day; onPick(sel); draw(); }));
+      box.querySelector('#cprev').onclick = () => { vm--; if (vm < 0) { vm = 11; vy--; } draw(); };
+      box.querySelector('#cnext').onclick = () => { vm++; if (vm > 11) { vm = 0; vy++; } draw(); };
+      box.querySelector('#cm').onchange = e => { vm = +e.target.value; draw(); };
+      box.querySelector('#cy').onchange = e => { vy = +e.target.value; draw(); };
+      box.querySelector('#ctoday').onclick = () => { sel = today; vy = now.getFullYear(); vm = now.getMonth(); onPick(sel); draw(); };
+      box.querySelector('#cclr').onclick = () => { sel = ''; onPick(''); draw(); };
+    }
+    draw();
+  }
 
   /* ---------- الورقة: HTML ---------- */
   function blocksToHtml(bs) {

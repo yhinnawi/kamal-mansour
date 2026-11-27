@@ -69,6 +69,15 @@ textarea.f{min-height:38vh;resize:vertical;line-height:1.7}
 .chip:active{border-color:var(--pri);background:var(--line)}
 .item button:active{background:var(--line)}
 header.bar button:active{background:rgba(255,255,255,.25)}
+.calsel{display:flex;gap:8px;align-items:center;margin-bottom:12px}
+.calsel select{min-height:54px;padding:6px 10px;font-size:20px}.calm{flex:1.4}.caly{flex:1}
+.calnav{flex:0 0 52px;height:54px;border-radius:12px;border:2px solid var(--line);background:var(--card);color:var(--ink);font-size:30px;line-height:1}
+.calgrid{display:grid;grid-template-columns:repeat(7,1fr);gap:5px;margin-bottom:12px}
+.calwd{text-align:center;font-size:14px;color:var(--muted);padding:4px 0}
+.calday{height:48px;border-radius:10px;border:1.5px solid var(--line);background:var(--card);color:var(--ink);font:inherit;font-size:19px;padding:0}
+.calday.today{border-color:var(--acc);color:var(--acc);font-weight:700}
+.calday.on{background:var(--pri);border-color:var(--pri);color:var(--pri-ink);font-weight:700}
+.calout{font-size:18px;margin-bottom:12px;padding:10px 12px;background:var(--card);border-radius:10px;border:1.5px solid var(--line)}
 .toast{position:fixed;left:50%;bottom:120px;transform:translateX(-50%);background:#111;color:#fff;padding:14px 22px;border-radius:14px;font-size:19px;z-index:50;max-width:90vw;text-align:center}
 .note{background:var(--card);border:1.5px solid var(--line);border-radius:14px;padding:14px 16px;font-size:18px;margin-bottom:14px}
 .empty{color:var(--muted);text-align:center;padding:30px 10px}

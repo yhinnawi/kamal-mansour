@@ -146,7 +146,7 @@
     const req = (d.req || []).filter(p => H.has(p.name)), srv = (d.srv || []).filter(p => H.has(p.name));
     const gr = H.g(req), gs = H.g(srv), S = H.sfx(gs);
     const doc = o.doc || 'هذه الصحيفة';
-    out.push({ t: 'p', x: 'أنه في يوم ' + BL + ' الموافق ……/……/' + H.year() + ' الساعة ' + BL });
+    out.push({ t: 'p', x: 'أنه في يوم ' + (H.wday(d.pdate) || BL) + ' الموافق ' + (H.date(d.pdate) || '……/……/' + H.year()) + ' الساعة ' + BL });
     if (req.length > 1) {
       out.push({ t: 'p', x: 'بناءً على طلب كلٍّ من:', src: 'req' });
       req.forEach((p, i) => out.push({ t: 'li', n: (i + 1) + '- ', x: H.one(p), src: 'req' }));
@@ -388,7 +388,7 @@
       const off = H.office(), req = (d.req || []).filter(p => H.has(p.name)), srv = (d.srv || []).filter(p => H.has(p.name));
       const gr = H.g(req), out = [{ t: 't', x: 'صحيفة طعن بطريق النقض' },
         { t: 'p', x: 'أودعت هذه الصحيفة قلم كتاب محكمة ' + BL },
-        { t: 'p', x: 'أنه في يوم ' + BL + ' الموافق ……/……/' + H.year() },
+        { t: 'p', x: 'أنه في يوم ' + (H.wday(d.pdate) || BL) + ' الموافق ' + (H.date(d.pdate) || '……/……/' + H.year()) },
         { t: 'p', a: 'j', src: 'req', x: 'حضر السيد الأستاذ / ' + off.name + ' المحامي بالنقض بمكتبه الكائن ' + off.addr + ' – بصفته وكيلاً عن ' + req.map(H.one).join('، و') + ' ' + tawkilTxt(d) }];
       out.push({ t: 'tbl', rows: [['', '( ' + H.pick(gr, 'طاعن', 'طاعنة', 'طاعنون') + ' )']], c: ['r', 'c'] });
       out.push({ t: 'h', x: 'ضـــــــد' });
@@ -419,7 +419,7 @@
     render(d) {
       const off = H.office(), req = (d.req || []).filter(p => H.has(p.name)), srv = (d.srv || []).filter(p => H.has(p.name)), gs = H.g(srv);
       const out = [{ t: 't', x: 'تقرير طعــن' },
-        { t: 'p', x: 'أنه في يوم ' + BL + ' الموافق ……/……/' + H.year() + ' الساعة ' + BL },
+        { t: 'p', x: 'أنه في يوم ' + (H.wday(d.pdate) || BL) + ' الموافق ' + (H.date(d.pdate) || '……/……/' + H.year()) + ' الساعة ' + BL },
         { t: 'p', x: 'أمامي أنا ' + BL + ' مراقب شئون المحكمة الإدارية العليا' },
         { t: 'p', a: 'j', src: 'req', x: 'حضر الأستاذ / ' + off.name + ' المحامي المقبول أمام محكمة النقض والإدارية العليا بصفته وكيلاً عن ' + req.map(H.one).join('، و') },
         { t: 'h', x: 'ضـــــــد' }];
@@ -579,6 +579,9 @@
       return out;
     }
   };
+
+  const PDATE = F.date('pdate', 'تاريخ الورقة', { opt: true, hint: 'اختر التاريخ، أو اضغط «مسح التاريخ» ليتركه فارغاً للمحضر' });
+  Object.keys(T).forEach(id => { if (!['mozakra', 'shakwa', 'bay3', 'fasakh'].includes(id)) T[id].fields.unshift(PDATE); });
 
   /* ---------- مجموعات الشاشة الرئيسية ---------- */
   const GROUPS = [
