@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content">
+<meta name="theme-color" content="#1f3a5f">
+<title>نماذج المحامي</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<style>
+@font-face{font-family:Naskh;src:url(fonts/noto-naskh-arabic-arabic-400-normal.woff2) format('woff2');font-weight:400;unicode-range:U+0600-06FF,U+0750-077F,U+0870-08FF,U+200C-200E,U+2010-2011,U+204F,U+2E41,U+FB50-FDFF,U+FE70-FEFC}
+@font-face{font-family:Naskh;src:url(fonts/noto-naskh-arabic-arabic-700-normal.woff2) format('woff2');font-weight:700;unicode-range:U+0600-06FF,U+0750-077F,U+0870-08FF,U+200C-200E,U+2010-2011,U+204F,U+2E41,U+FB50-FDFF,U+FE70-FEFC}
+@font-face{font-family:Naskh;src:url(fonts/noto-naskh-arabic-latin-400-normal.woff2) format('woff2');font-weight:400;unicode-range:U+0000-00FF,U+2000-206F}
+@font-face{font-family:Naskh;src:url(fonts/noto-naskh-arabic-latin-700-normal.woff2) format('woff2');font-weight:700;unicode-range:U+0000-00FF,U+2000-206F}
+:root{--ink:#111;--muted:#4a4a4a;--line:#c9ced6;--bg:#f4f5f7;--card:#fff;--pri:#1f3a5f;--pri-ink:#fff;--acc:#2563eb;--danger:#b42318;--ok:#067647;--fs:20px}
+:root.dark{--ink:#f2f2f2;--muted:#c4c4c4;--line:#4a4f57;--bg:#14161a;--card:#1f2228;--pri:#9fc1ff;--pri-ink:#0b1530;--acc:#9fc1ff;--danger:#ff9b91;--ok:#7be0a8}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--ink);font-family:Naskh,"Noto Naskh Arabic","Noto Sans Arabic",Tahoma,Arial,sans-serif;font-size:var(--fs);line-height:1.6}
+#app{display:flex;flex-direction:column;height:100vh;height:100dvh;max-width:720px;margin:0 auto}
+header.bar{display:flex;align-items:center;gap:10px;padding:12px 16px;background:var(--pri);color:var(--pri-ink);min-height:60px}
+header.bar h1{font-size:21px;margin:0;flex:1;font-weight:700;line-height:1.3}
+header.bar button{background:transparent;border:1.5px solid currentColor;color:inherit;border-radius:10px;font:inherit;font-size:17px;padding:6px 12px;min-height:44px}
+main{flex:1;overflow-y:auto;padding:16px;-webkit-overflow-scrolling:touch}
+footer.nav{padding:10px 16px calc(10px + env(safe-area-inset-bottom));background:var(--card);border-top:1px solid var(--line);display:flex;flex-direction:column;gap:10px}
+.btn{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;min-height:58px;border-radius:14px;font:inherit;font-size:21px;font-weight:700;border:2px solid var(--pri);background:var(--card);color:var(--pri);padding:8px 14px;cursor:pointer}
+.btn.pri{background:var(--pri);color:var(--pri-ink)}
+.btn.danger{border-color:var(--danger);color:var(--danger)}
+.btn.small{min-height:48px;font-size:18px;font-weight:400}
+.row{display:flex;gap:10px}.row>*{flex:1}
+.tiles{display:grid;grid-template-columns:1fr;gap:12px}
+@media(min-width:520px){.tiles{grid-template-columns:1fr 1fr}}
+.tile{display:flex;align-items:center;gap:14px;background:var(--card);border:1.5px solid var(--line);border-radius:16px;padding:16px;font:inherit;font-size:22px;font-weight:700;color:var(--ink);text-align:right;min-height:72px;width:100%;cursor:pointer}
+.tile .ic{flex:0 0 46px;height:46px;border-radius:12px;background:var(--pri);color:var(--pri-ink);display:flex;align-items:center;justify-content:center;font-size:24px}
+.tile small{display:block;font-size:16px;font-weight:400;color:var(--muted)}
+.sec{font-size:18px;color:var(--muted);margin:22px 4px 10px;font-weight:700}
+.progress{font-size:17px;color:var(--muted);margin-bottom:6px}
+.pbar{height:8px;background:var(--line);border-radius:4px;overflow:hidden;margin-bottom:22px}.pbar>div{height:100%;background:var(--acc)}
+.q{font-size:25px;font-weight:700;margin:0 0 6px;line-height:1.45}
+.grp{font-size:18px;color:var(--acc);font-weight:700;margin-bottom:4px}
+.hint{font-size:17px;color:var(--muted);margin:0 0 14px}
+input.f,textarea.f,select.f{width:100%;font:inherit;font-size:21px;color:var(--ink);background:var(--card);border:2px solid var(--line);border-radius:12px;padding:12px 14px;min-height:60px}
+input.f:focus,textarea.f:focus{outline:none;border-color:var(--acc)}
+textarea.f{min-height:38vh;resize:vertical;line-height:1.7}
+.chips{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:14px}
+.chip{font:inherit;font-size:19px;padding:10px 16px;min-height:52px;border-radius:26px;border:2px solid var(--line);background:var(--card);color:var(--ink);cursor:pointer}
+.chip.on{border-color:var(--pri);background:var(--pri);color:var(--pri-ink);font-weight:700}
+.items{display:flex;flex-direction:column;gap:10px;margin:10px 0 18px}
+.item{display:flex;align-items:center;gap:10px;background:var(--card);border:1.5px solid var(--line);border-radius:12px;padding:10px 14px}
+.item span{flex:1;font-size:19px;overflow:hidden;text-overflow:ellipsis;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+.item button{font:inherit;font-size:17px;min-height:46px;min-width:64px;border-radius:10px;border:1.5px solid var(--line);background:transparent;color:var(--ink)}
+.item button.del{color:var(--danger);border-color:var(--danger)}
+.btn,.tile,.chip,.item button,header.bar button{transition:background-color .15s,color .15s,border-color .15s,transform .08s,box-shadow .15s}
+@media(hover:hover){
+ .btn:hover{background:var(--pri);color:var(--pri-ink)}
+ .btn.pri:hover{filter:brightness(1.18)}
+ .btn.danger:hover{background:var(--danger);color:#fff;border-color:var(--danger)}
+ .tile:hover{border-color:var(--pri);box-shadow:0 0 0 2px var(--pri) inset}
+ .chip:hover{border-color:var(--pri)}
+ .item button:hover{background:var(--line)}
+ .item button.del:hover{background:var(--danger);color:#fff}
+ header.bar button:hover{background:rgba(255,255,255,.18)}
+}
+.btn:active,.tile:active,.chip:active,.item button:active,header.bar button:active{transform:scale(.96)}
+.btn:active{background:var(--pri);color:var(--pri-ink)}
+.btn.pri:active{filter:brightness(1.25)}
+.btn.danger:active{background:var(--danger);color:#fff}
+.tile:active{border-color:var(--pri);background:var(--line)}
+.chip:active{border-color:var(--pri);background:var(--line)}
+.item button:active{background:var(--line)}
+header.bar button:active{background:rgba(255,255,255,.25)}
+.toast{position:fixed;left:50%;bottom:120px;transform:translateX(-50%);background:#111;color:#fff;padding:14px 22px;border-radius:14px;font-size:19px;z-index:50;max-width:90vw;text-align:center}
+.note{background:var(--card);border:1.5px solid var(--line);border-radius:14px;padding:14px 16px;font-size:18px;margin-bottom:14px}
+.empty{color:var(--muted);text-align:center;padding:30px 10px}
+.pvwrap{background:#8a8f98;border-radius:12px;padding:10px;overflow:hidden}
+.pvscale{transform-origin:top right}
+/* paper */
+.page{background:#fff;color:#000;width:210mm;min-height:297mm;padding:22mm 25mm 22mm 20mm;font-family:Naskh,"Noto Naskh Arabic",Arial,serif;font-size:14pt;line-height:1.75;direction:rtl;margin:0 auto 10px}
+.page p{margin:0 0 4pt;text-align:right}
+.page p.j{text-align:justify}.page p.c{text-align:center}.page p.l{text-align:left}
+.page p.b,.page .b{font-weight:700}
+.page p.h{text-align:center;font-weight:700;font-size:16pt;margin:8pt 0 6pt;letter-spacing:.5px;break-after:avoid;page-break-after:avoid}
+.page p.t{text-align:center;font-weight:700;font-size:18pt;margin:0 0 10pt;text-decoration:underline}
+.page p.li{padding-right:0;text-align:justify}
+.page table{width:100%;border-collapse:collapse;margin:2pt 0 6pt}
+.page td{vertical-align:top;padding:1pt 2pt;font-size:14pt}
+.page td.c{text-align:center}
+.page [data-src]{cursor:pointer}
+.page [data-src]:active{background:#fff3c4}
+#print{display:none}
+@media print{
+ @page{size:A4;margin:20mm 25mm 20mm 20mm}
+ html,body{background:#fff;height:auto}
+ #app,.toast{display:none!important}
+ #print{display:block}
+ #print .page{margin:0;padding:0;width:auto;min-height:auto}
+ #print tr{page-break-inside:avoid}
+}
+</style>
+</head>
+<body>
+<div id="app"><p style="padding:30px;font-size:22px;text-align:center">جاري التحميل…</p></div>
+<script>
+window.__errs=[];
+window.onerror=function(m,src,l,c,e){
+  window.__errs.push(m+' @'+(src||'').split('/').pop()+':'+l+':'+c);
+  var a=document.getElementById('app');
+  if(a){a.innerHTML='<div style="padding:20px;font-size:17px;direction:rtl"><b style="color:#b42318;font-size:20px">حدث خطأ أثناء فتح التطبيق</b><p>من فضلك صوّر هذه الشاشة وأرسلها:</p><pre dir="ltr" style="white-space:pre-wrap;background:#eee;padding:10px;border-radius:8px;font-size:13px">'+
+   window.__errs.join('\n').replace(/</g,'&lt;')+'\n'+navigator.userAgent+'</pre></div>';}
+};
+</script>
+<div id="print"></div>
+<script src="templates.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
