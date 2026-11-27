@@ -3,7 +3,7 @@
   'use strict';
   const { T, GROUPS, H } = window.TPL;
   const $app = document.getElementById('app');
-  const VERSION = '1.5.0';
+  const VERSION = '1.5.1';
 
   /* ---------- التخزين ---------- */
   const LS = {
@@ -26,6 +26,12 @@
   applyPrefs();
   /* وضع مضغوط عند ظهور لوحة المفاتيح */
   let fullH = window.innerHeight;
+  function fitApp() {                                        // ارتفاع الشاشة المرئية فعلاً (بدون شريط التنقل)
+    const vh = window.visualViewport ? window.visualViewport.height : window.innerHeight;
+    document.documentElement.style.setProperty('--appH', Math.round(Math.min(vh, window.innerHeight)) + 'px');
+  }
+  fitApp(); window.addEventListener('resize', fitApp); window.addEventListener('orientationchange', () => setTimeout(fitApp, 300));
+  if (window.visualViewport) window.visualViewport.addEventListener('resize', fitApp);
   function kbCheck() {
     const h = window.visualViewport ? window.visualViewport.height : window.innerHeight;
     if (h > fullH) fullH = h;
@@ -34,6 +40,7 @@
   }
   (window.visualViewport || window).addEventListener('resize', kbCheck);
   document.addEventListener('focusin', () => setTimeout(kbCheck, 300));
+  window.addEventListener('load', kbCheck); kbCheck();
   document.addEventListener('focusout', () => setTimeout(kbCheck, 300));
   document.addEventListener('touchstart', () => { }, { passive: true }); // يفعّل تأثير الضغط على كل الأجهزة
 
